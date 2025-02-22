@@ -1,7 +1,21 @@
-import type { NextConfig } from "next";
+import { hostname } from "os";
 
-const nextConfig: NextConfig = {
-  /* config options here */
-};
-
-export default nextConfig;
+module.exports = {
+  middleware: true,  // This enables middleware for Next.js
+  images:{
+    remotePatterns :[
+      {
+        hostname :"lh3.googleusercontent.com",
+        protocol :"https"
+    },
+    {
+      hostname :"avatars.githubusercontent.com",
+      protocol :"https"
+  },{
+    hostname:"bbkpjrnraermllvdjhno.supabase.co",
+    protocol:"https"
+  }
+  ]
+  // Remove the experimental flag for middleware
+}
+}
