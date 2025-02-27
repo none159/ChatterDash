@@ -7,11 +7,23 @@ import { supabaseclient } from "@/utils/supabase/browser";
 import { PostgrestSingleResponse } from "@supabase/postgrest-js";
 import Link from "next/link";
 
-type user = {
+type Session = {
+  id:string;
   avatar_url: string;
   display_name: string;
   full_name:string;
   email: string;
+
+}
+type User = {
+  id: string;
+  email: string;
+  created_at: string;
+  user_metadata?: {
+    avatar_url?: string;
+    full_name?: string;
+    display_name?: string;
+  };
 };
 
 type Room = {
@@ -35,7 +47,8 @@ type RoomType = Room[];
 const Profile = () => {
   const supabase = supabaseclient();
   const[email,setemail]=useState("")
-  const [session, setSession] = useState<user>();
+  const [session, setSession] = useState<Session>();
+  const [user,setuser]=useState<User>()
   const [joinedroom, setJoinedRoom] = useState<MemberResponse>();
   const [userid, setUserid] = useState("");
   const [rooms, setRooms] = useState<RoomType>([]);
@@ -60,12 +73,20 @@ const Profile = () => {
 
     if (member.data) {
       setJoinedRoom(member);
+      console.log(member)
     }
   };
 
   const fetchuser = async () => {
     const { data: authData } = await supabase.auth.getUser();
     if (authData?.user && authData.user.email) {
+      const transformedUser: User = {
+        id: authData.user.id,
+        email: authData.user.email || "", // Ensure email is always a string
+        created_at: authData.user.created_at,
+        user_metadata: authData.user.user_metadata,
+      };
+      setuser(transformedUser)
       setUserid(authData.user.id);
       setemail(authData.user.email)
     }
@@ -94,7 +115,7 @@ const handledelete = async(roomid:string,creator:string)=>{
     }
 }
 const handleleave = async(roomid:string,member:string)=>{
-    const res = await fetch('/api/room/delete',{
+    const res = await fetch('/api/room/leave',{
          method:'POST',
          body:JSON.stringify({
              member,
@@ -154,65 +175,62 @@ const handleleave = async(roomid:string,member:string)=>{
                   <span className="text-blue-500">Last Name : </span>
                   {getFirstAndLastName(session.display_name?session.display_name:session.full_name).lastName}
                 </h2>
+                <h2>
+                  <span className="text-blue-500">Created At : </span>
+                  {user?.created_at}
+                </h2>
               </div>
 
               <div className="grid gap-5 place-items-center">
                 <h2>Joined Rooms:</h2>
                 <div className="flex gap-5">
-                  {rooms.length > 0 ? (
-                    rooms.map((room) => {
-                      const hasJoined = joinedroom?.data?.some(
-                        (member) => member.roomid === room.id && member.member != room.created_by
-                      );
+  {joinedroom?.data?.some(member => 
+      rooms.some(room => room.id === member.roomid && room.created_by !== userid)
+    ) ? (
+    rooms.map((room) => {
+      const hasJoined = joinedroom?.data?.some(
+        (member) => member.roomid === room.id && room.created_by !== userid
+      );
+      if (hasJoined) {
+        return (
+          <div key={room.id} className="p-5 grid gap-5 border rounded-lg shadow-md">
+          <h3 className="text-lg font-semibold">
+            <span className="text-blue-500">Room : </span>
+            {room.name}
+          </h3>
+          <div className="flex gap-2">
+            <Link href={`/chatroom/${room.id}`}>
+              <Button className="hover:bg-green-500">Chat</Button>
+            </Link>
+      
+              <Button onClick={()=>handleleave(room.id,userid)} className="hover:bg-red-500">Leave</Button>
+           
+          </div>
+        </div>
+        );
+      }
+    })
+  ) : (
+    <p  className="text-gray-600">No Joined Room T_T</p>
+  )}
+</div>
 
-                      if (hasJoined) {
-                        return (
-                            <>
-                          <div key={room.id} className="p-5 grid gap-5 border rounded-lg shadow-md">
-                            <h3 className="text-lg font-semibold">
-                              <span className="text-blue-500">Room : </span>
-                              {room.name}
-                            </h3>
-                            <div className="flex gap-2">
-                              <Link href={`/chatroom/${room.id}`}>
-                                <Button className="hover:bg-green-500">Chat</Button>
-                              </Link>
-                        
-                                <Button onClick={()=>handleleave(room.id,userid)} className="hover:bg-red-500">Leave</Button>
-                             
-                            </div>
-                          </div>
-                          
-                          </>
-                        );
-                      }
-                      if(!hasJoined){
-                        
-                            return(
-                                <p key={room.id} className="text-gray-600">No Joined Room T_T</p>
-                            )
-                        
-                      }
-                    })
-                  ):
-                  (
-                    <p  className="text-gray-600">No Joined Room T_T</p>
-                )
-                  }
-                </div>
+
+
               </div>
               <div className="grid mt-5 gap-5 place-items-center">
                 <h2>Created Rooms:</h2>
-                <div className="flex gap-5">
-                  {rooms.length > 0 ? (
-                    rooms.map((room) => {
-                      const isadmin = joinedroom?.data?.some(
-                        (member) => member.member === room.created_by
-                      );
-
+                <div className="flex gap-5" >
+                {joinedroom?.data?.some(member => 
+      rooms.some(room => room.id === member.roomid && room.created_by == userid)
+    ) ? (
+    rooms.map((room) => {
+      const isadmin = joinedroom?.data?.some(
+        (member) => member.roomid === room.id && room.created_by == userid
+      );
                       if (isadmin) {
                         return (
-                            <>
+
                           <div key={room.id} className="p-5 grid gap-5 border rounded-lg shadow-md">
                             <h3 className="text-lg font-semibold">
                               <span className="text-blue-500">Room : </span>
@@ -227,17 +245,10 @@ const handleleave = async(roomid:string,member:string)=>{
                              
                             </div>
                           </div>
-                          
-                          </>
+                 
                         );
                       }
-                      if(!isadmin){
-                        
-                            return(
-                                <p key={room.id} className="text-gray-600">No Created Room ^_^</p>
-                            )
-                        
-                      }
+            
                     })
                   ):
                   (

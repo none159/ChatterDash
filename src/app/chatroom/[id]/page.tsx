@@ -40,9 +40,9 @@ type user = {
   id:string;
 };
 type roomtype = {
+  id: string;
   created_at: string;
   created_by: string;
-  id: string;
   name: string;
 }[]
 const Chatroom = () => {
@@ -99,7 +99,7 @@ const Chatroom = () => {
   };
 
   const fetchmessages = async () => {
-    const { error, data } = await supabase.from("messages").select('*, users(*)');
+    const { error, data } = await supabase.from("messages").select('*, users(*)').eq("roomid",id);
     
     if (data) {
       // Parse the created_at string into Date objects before sorting
@@ -118,7 +118,7 @@ const Chatroom = () => {
     if (currentMessage.trim() !== "") {
       setCurrentMessage(""); // Clear the input after sending
       const { error } = await supabase.from("messages").insert({ text: currentMessage,send_by:session!.id,roomid:id});
-      console.log(datas)
+
       if (error) {
         console.log(error);
       }

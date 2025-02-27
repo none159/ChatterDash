@@ -129,35 +129,38 @@ const RoomList = () => {
 
   return (
     <section className="p-4 grid gap-5 relative top-[100px]">
-      <h2 className="text-xl font-bold bg-blue-500   p-3 w-fit rounded-lg mb-4">Available Rooms</h2>
-      <div className="grid grid-cols-1  md:grid-cols-2 lg:grid-cols-3 gap-4">
+      <h2 className="text-xl font-bold bg-blue-500 p-3 w-fit rounded-lg mb-4">
+        Available Rooms
+      </h2>
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
         {rooms.length > 0 ? (
-          rooms.map((room, index) => {
-            // Check if user is already in the room
-            const hasJoined = joinedroom?.data?.some((member) => member.roomid === room.id);
-
-            if (!hasJoined) {
-              return (
-                <div key={room.id} className="p-4 border rounded-lg shadow-md">
-                  <h3 className="text-lg font-semibold">{room.name}</h3>
-                  <p className="text-sm text-gray-500">
-                    Created by: {users.length > 0 && users[index]?.display_name}
-                  </p>
-                  <Button onClick={() => handleJoin(room.id)}>Join</Button>
-                </div>
-              );
-            }
-            else if(hasJoined&& index == rooms.length-1){
-             return <p>No rooms available to join.</p>
-            }
-       
-          })
+          rooms.filter(room => !joinedroom?.data?.some(member => member.roomid === room.id)).length > 0 ? (
+            rooms.map((room, index) => {
+              const hasJoined = joinedroom?.data?.some(member => member.roomid === room.id);
+  
+              if (!hasJoined) {
+                return (
+                  <div key={room.id} className="p-4 border rounded-lg shadow-md">
+                    <h3 className="text-lg font-semibold">{room.name}</h3>
+                    <p className="text-sm text-gray-500">
+                      Created by: {users.length > 0 && users[index]?.display_name}
+                    </p>
+                    <Button onClick={() => handleJoin(room.id)}>Join</Button>
+                  </div>
+                );
+              }
+              return null;
+            })
+          ) : (
+            <p className="text-center col-span-full text-gray-500">You have joined all available rooms.</p>
+          )
         ) : (
-          <p>No rooms available.</p>
+          <p className="text-center col-span-full text-gray-500">No rooms available.</p>
         )}
       </div>
     </section>
   );
+  
 };
 
 export default RoomList;

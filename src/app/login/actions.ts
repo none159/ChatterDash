@@ -6,27 +6,37 @@ import { redirect } from 'next/navigation'
 import { SupaBaseServer } from '@/utils/supabase/server'
 import { getURL } from '@/utils/helpers'
 import { Provider } from '@supabase/supabase-js'
+import { cookies } from 'next/headers';
 
 export async function login(formData: FormData) {
-  const supabase = await SupaBaseServer()
+  const supabase = await SupaBaseServer();
 
-  // type-casting here for convenience
-  // in practice, you should validate your inputs
   const data = {
     email: formData.get('email') as string,
     password: formData.get('password') as string,
-  }
+  };
 
-  const { error } = await supabase.auth.signInWithPassword(data)
+  const { error } = await supabase.auth.signInWithPassword(data);
 
   if (error) {
-    redirect('/error')
+    redirect('/error');
   }
 
-  revalidatePath('/', 'layout')
-  redirect('/')
-}
+  // Set session expiry time (1 minute from now)
+  const expiryTimestamp = Date.now() + 60 * 1000;
 
+  // 🛠 FIX: Use `cookies().set(...)` correctly
+  (await
+    // 🛠 FIX: Use `cookies().set(...)` correctly
+    cookies()).set('session-expiry', String(expiryTimestamp), {
+    httpOnly: true,
+    secure: false,
+    path: '/',
+  });
+
+  revalidatePath('/', 'layout');
+  redirect('/');
+}
 export async function signup(formData: FormData) {
   const supabase = await SupaBaseServer()
 
